@@ -1,0 +1,75 @@
+{
+  "individual_policies": {
+    "rule": {
+      "ips": 0.0869,
+      "snips": 0.0869,
+      "dr": -0.0030
+    },
+    "per_action": {
+      "ips": 0.1926,
+      "snips": 0.1926,
+      "dr": 0.0080
+    },
+    "dqn": {
+      "ips": 0.1537,
+      "snips": 0.1537,
+      "dr": 0.0069
+    },
+    "safety": {
+      "ips": 0.1815,
+      "snips": 0.1815,
+      "dr": 0.0074
+    },
+    "cf_knn": {
+      "ips": 0.0907,
+      "snips": 0.0907,
+      "dr": 0.0069
+    }
+  },
+  "meta_selectors": {
+    "xgboost_simple": {
+      "ips": 0.3515,
+      "snips": 0.3515,
+      "dr": 0.0060,
+      "policy_selections": {
+        "rule": 113179,
+        "per_action": 23845,
+        "dqn": 12855,
+        "safety": 2110,
+        "cf_knn": 5777
+      }
+    },
+    "transformer_gb": {
+      "ips": 1.3539,
+      "snips": 1.3539,
+      "dr": 0.0666,
+      "policy_selections": {
+        "rule": 121725,
+        "per_action": 32693,
+        "dqn": 3066,
+        "safety": 0,
+        "cf_knn": 282
+      }
+    },
+    "static_multi_context": {
+      "ips": 2.3654,
+      "snips": 2.3654,
+      "dr": 0.0843,
+      "policy_selections": {
+        "rule": 121488,
+        "per_action": 29491,
+        "dqn": 5324,
+        "safety": 50,
+        "cf_knn": 1413
+      }
+    }
+  },
+  "metadata": {
+    "dataset": "HealthGymV2_CbdrhDatathon_ART4HIV.csv",
+    "total_samples": 157766,
+    "val_frac": 0.3,
+    "seed": 0,
+    "generated_date": "2024-12-13"
+  }
+}
+

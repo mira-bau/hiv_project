@@ -1,0 +1,22 @@
+numpy==2.1.3
+pandas==2.2.3
+scikit-learn==1.5.2
+hydra-core==1.3.2
+mlflow==3.6.0
+matplotlib==3.10.3
+seaborn==0.13.2
+joblib==1.5.1
+jupyterlab==4.2.5
+ipykernel==7.1.0
+streamlit==1.52.1
+plotly==6.5.0
+torch==2.9.1
+
+# Optional: For Transformer-based meta-selectors
+# Uncomment to enable transformer mode (meta.selector_type="transformer" or "transformer_gb")
+# torch==2.4.1
+# Or install with: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Optional: For Transformer-GB hybrid (meta.selector_type="transformer_gb")
+# xgboost==2.1.3
+# Or: lightgbm==4.5.0 (alternative to xgboost)
