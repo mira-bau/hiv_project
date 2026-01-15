@@ -218,3 +218,6 @@ __marimo__/
 
 # Other
 .DS_Store
+__MACOSX
+artifacts/*.pkl
+artifacts/*.zip
