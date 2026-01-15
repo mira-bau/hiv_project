@@ -12,7 +12,24 @@ All models are trained and evaluated on the HealthGym ART4HIV dataset using offl
 
 ## Quick Start
 
-### 0. Extract the artifacts in `artifacts/extract_me.zip`.
+### 0. Extract the artifacts
+
+The model artifacts are stored in a split zip file (due to GitHub's 100 MB file size limit). To extract them:
+
+**Option 1: Recombine and extract (recommended)**
+```bash
+cd artifacts
+cat extract_me.zip.part* > extract_me.zip
+unzip extract_me.zip
+```
+
+**Option 2: Extract directly without creating the full zip file**
+```bash
+cd artifacts
+cat extract_me.zip.part* | unzip -d . -
+```
+
+Make sure all three parts (`extract_me.zip.partaa`, `extract_me.zip.partab`, `extract_me.zip.partac`) are present in the `artifacts/` directory.
 
 ### 1. Install Dependencies
 
