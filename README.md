@@ -1,183 +1,246 @@
-# Medical Case: HIV Treatment Meta-Recommender
+# HIV Treatment Meta-RL Case: Strategy-Aware Policy Selection
 
-This directory contains the complete medical case implementation for the HIV antiretroviral therapy (ART) meta-recommender system.
+This directory contains the complete implementation of the HIV antiretroviral therapy (ART) **meta–reinforcement learning** case study.  
+The project treats HIV care as an offline Markov Decision Process (MDP) and learns a **meta-policy** that selects among several base treatment policies.
 
 ## Overview
 
 The system compares:
-- **5 Individual Expert Policies**: rule-based, per-action supervised, DQN, safety-aware, CF-kNN
-- **3 Meta-Selectors**: XGBoost Simple (baseline), Transformer-GB (hybrid), Static Multi-Context Transformer (main contribution)
 
-All models are trained and evaluated on the HealthGym ART4HIV dataset using offline evaluation metrics (IPS, SNIPS, DR).
+- **5 Base Treatment Policies (experts)**  
+  - Guideline rule (always-regimen-0 baseline)  
+  - Per-action supervised value model  
+  - Fitted Q-style (DQN-like) policy  
+  - Safety-aware value model (reward–risk trade-off)  
+  - CF–kNN similarity-based policy  
+
+- **3 Meta-Reasoning Policies (policy selectors)**  
+  - XGBoost Simple (state-only meta-policy)  
+  - Transformer-GB (state encoder + gradient boosting head)  
+  - Static Multi-Context Transformer (main contribution; strategy-aware meta-policy over experts)
+
+All policies are trained and evaluated on the **HealthGym ART4HIV** cohort in a fully **offline RL** setting using:
+- IPS (importance sampling in the simplified match/no-match form)  
+- SNIPS (self-normalised IPS, mainly for diagnostics)  
+- DR (doubly robust estimator; main comparison metric)
 
 ## Quick Start
 
 ### 0. Extract the artifacts
 
-The model artifacts are stored in a split zip file (due to GitHub's 100 MB file size limit). To extract them:
+Model artifacts are split into parts (GitHub size limit). Extraction happens in `artifacts/`.
 
-**Option 1: Recombine and extract (recommended)**
+**Option 1 – recombine and unzip (recommended)**
+
 ```bash
 cd artifacts
 cat extract_me.zip.part* > extract_me.zip
 unzip extract_me.zip
 ```
 
-**Option 2: Extract directly without creating the full zip file**
+**Option 2 – stream directly to `unzip`**
+
 ```bash
 cd artifacts
 cat extract_me.zip.part* | unzip -d . -
 ```
 
-Make sure all three parts (`extract_me.zip.partaa`, `extract_me.zip.partab`, `extract_me.zip.partac`) are present in the `artifacts/` directory.
+All of the following files must be present before extraction:
 
-### 1. Install Dependencies
+- `extract_me.zip.partaa`  
+- `extract_me.zip.partab`  
+- `extract_me.zip.partac`
+
+### 1. Install dependencies
 
 ```bash
 cd medical_case
 pip install -r requirements.txt
 ```
 
-### 2. Run Complete Comparison
+### 2. Run complete RL comparison
 
-**Default mode (cached results - fast):**
+**Default mode (cached metrics; no training):**
+
 ```bash
 cd medical_case
 python run_comparison.py
 ```
 
-This will:
-- Load and display cached results from `outputs/results.json` (instant)
-- Show IPS/SNIPS/DR metrics for all models
-- Show policy selection distributions
+Behaviour in this mode:
 
-**Recompute mode (full training):**
+- Loads pre-computed metrics from `outputs/results.json`  
+- Reports IPS/SNIPS/DR for all base policies and meta-policies  
+- Prints how often each meta-policy selects each base policy
+
+**Recompute mode (full offline-RL training):**
+
 ```bash
 cd medical_case
 python run_comparison.py --rerun
 ```
 
-This will:
-- Train all 5 individual policies
-- Train all 3 meta-selectors
-- Output IPS/SNIPS/DR metrics for comparison
-- Save trained models to `artifacts/`
-- Overwrite cached results in `outputs/results.json`
+This mode:
 
-### 3. Run Individual Meta-Selectors
+- Trains all 5 base policies on the training split  
+- Trains all 3 meta-reasoning policies (meta-RL selectors)  
+- Evaluates IPS/SNIPS/DR on the validation split  
+- Saves trained models under `artifacts/`  
+- Overwrites `outputs/results.json` with fresh metrics
 
-All run scripts support cached results by default:
+### 3. Run individual meta-reasoning policies
 
-**XGBoost Simple (state-only baseline):**
+Each script supports cached metrics by default and retraining with `--rerun`.
+
+**Meta-policy 1: XGBoost on state (baseline meta-MDP policy)**
+
 ```bash
 cd medical_case
-python run_xgb_simple_full.py          # Load cached results
-python run_xgb_simple_full.py --rerun  # Recompute
+python run_xgb_simple_full.py          # Load cached metrics
+python run_xgb_simple_full.py --rerun  # Retrain and re-evaluate
 ```
 
-**Transformer-GB (hybrid baseline):**
+**Meta-policy 2: Transformer-GB (state encoder + GB head)**
+
 ```bash
 cd medical_case
-python run_transformer_gb.py          # Load cached results
-python run_transformer_gb.py --rerun  # Recompute
+python run_transformer_gb.py          # Load cached metrics
+python run_transformer_gb.py --rerun  # Retrain and re-evaluate
 ```
 
-**Static Multi-Context Transformer (main contribution):**
+**Meta-policy 3: Static Multi-Context Transformer (main contribution)**
+
 ```bash
 cd medical_case
-python run_static_multi_context_full.py          # Load cached results
-python run_static_multi_context_full.py --rerun  # Recompute
+python run_static_multi_context_full.py          # Load cached metrics
+python run_static_multi_context_full.py --rerun  # Retrain and re-evaluate
 ```
 
-### 4. Launch Clinical UI
+The static multi-context Transformer is the main **strategy-aware meta-policy**: it receives the patient state, scalar value signals from all experts, and similarity meta-features, then outputs a distribution over expert indices.
 
-Run the Streamlit UI for patient-level recommendations:
+### 4. Launch clinical-style UI
+
+A Streamlit interface exposes the final meta-policy at the patient level:
 
 ```bash
 cd medical_case
 streamlit run app/clinical_app_real.py
 ```
 
-Then open in browser: `http://localhost:8501`
+Browser entrypoint: `http://localhost:8501`
 
-The UI loads the saved final fusion model from `artifacts/` (prioritizes `static_multi_context` if available). The UI does not retrain models.
+The UI:
+
+- Loads the pre-trained fusion meta-policy from `artifacts/`  
+  - Prefers `static_multi_context` if available  
+- Never retrains models; it only performs inference on saved artifacts  
+- Displays the selected strategy, confidence, and a structured treatment explanation for a chosen synthetic patient
+
+---
 
 ## Dataset
 
-The dataset is located at:
+Location:
+
 - `dataset/HealthGymV2_CbdrhDatathon_ART4HIV.csv`
 
-This contains patient trajectories with:
-- Patient state features (CD4, VL, demographics, treatment history)
-- Actions (drug combinations)
-- Outcomes (VL, CD4 at next timestep)
+Content (offline RL viewpoint):
+
+- **States**: visit-level clinical features  
+  - Viral load (VL), CD4 count and derived indices  
+  - Demographics  
+  - Current regimen codes and drug-class indicators  
+  - Short treatment history (lagged features)  
+
+- **Actions**: regimen category indicator used as the discrete action in the MDP
+
+- **Rewards / Outcomes**: next-visit VL and CD4 are combined into a scalar clinical reward used by all policies and for off-policy evaluation.
+
+Trajectories correspond to patient histories generated by clinicians under an unknown behaviour policy \(\pi_b\). No online interaction with the environment occurs; all learning is **offline**.
 
 ## Model Artifacts
 
-Trained models are saved to:
-- `artifacts/meta_selector_static_multi_context.pkl` (latest fusion model)
-- `artifacts/meta_selector_transformer_gb.pkl`
-- `artifacts/meta_selector_xgboost_simple.pkl`
+Main saved policies:
+
+- `artifacts/meta_selector_static_multi_context.pkl`  
+  Final static multi-context Transformer meta-policy
+
+- `artifacts/meta_selector_transformer_gb.pkl`  
+  Transformer-GB hybrid meta-policy
+
+- `artifacts/meta_selector_xgboost_simple.pkl`  
+  XGBoost state-only meta-policy
+
+Base policies and auxiliary models (value estimators, reward models) are also stored in `artifacts/` when `--rerun` is used.
 
 ## Cached Results
 
-Final results (metrics, policy selections) are stored in:
-- `outputs/results.json` - Complete comparison results
+Offline RL metrics and selection statistics:
 
-**Default behavior:** All run scripts load and display cached results instantly (no training).
+- `outputs/results.json`
 
-**To recompute:** Use the `--rerun` flag on any run script.
+Content:
 
-## Expected Performance
+- IPS, SNIPS, DR for all base policies  
+- IPS, SNIPS, DR for all three meta-policies  
+- Strategy-selection histograms for each meta-policy
 
-Based on full dataset runs:
+**Default behaviour:** all driver scripts read from this file and print metrics without retraining.
+
+**To recompute from scratch:** add `--rerun` to the desired script.
+
+## Expected Performance (offline RL metrics)
+
+Representative results on the full dataset:
 
 | Model | IPS | SNIPS | DR |
-|-------|-----|-------|-----|
-| **Individual Policies** |
-| Rule | 0.0869 | 0.0869 | -0.0030 |
-| Per-Action | 0.1926 | 0.1926 | 0.0080 |
-| DQN | 0.1537 | 0.1537 | 0.0069 |
-| Safety | 0.1815 | 0.1815 | 0.0074 |
-| CF-kNN | 0.0907 | 0.0907 | 0.0069 |
-| **Meta-Selectors** |
-| XGBoost Simple | 0.3515 | 0.3515 | 0.0060 |
-| Transformer-GB | 1.3539 | 1.3539 | 0.0666 |
-| Static Multi-Context | 2.3654 | 2.3654 | 0.0843 |
+|-------|-----|-------|----|
+| **Base policies (single-treatment policies)** ||||
+| Rule (guideline)       | 0.0869 | 0.0869 | -0.0030 |
+| Per-action supervised  | 0.1926 | 0.1926 |  0.0080 |
+| Fitted Q-style (DQN)   | 0.1537 | 0.1537 |  0.0069 |
+| Safety-aware           | 0.1815 | 0.1815 |  0.0074 |
+| CF-kNN                 | 0.0907 | 0.0907 |  0.0069 |
+| **Meta-reasoning policies (strategy selectors)** ||||
+| XGBoost Simple         | 0.3515 | 0.3515 |  0.0060 |
+| Transformer-GB         | 1.3539 | 1.3539 |  0.0666 |
+| Static Multi-Context   | 2.3654 | 2.3654 |  0.0843 |
+
+Interpretation:
+
+- DR is the primary offline RL metric.  
+- The static multi-context Transformer meta-policy achieves much higher DR than any single base policy, supporting the idea that **meta-reasoning over policies** is more effective than improving a single policy alone in this setting.
 
 ## Directory Structure
 
-```
+```text
 medical_case/
-├── README.md                    # This file
-├── requirements.txt             # Python dependencies
-├── dataset/                     # HealthGym ART4HIV dataset
-├── src/                         # Core code
-│   ├── data/loaders.py         # Dataset loading
-│   ├── features/                # Feature engineering
-│   ├── models/baselines.py      # 5 expert policies
-│   ├── meta/                    # 3 meta-selectors
-│   ├── eval/ips.py             # Offline evaluation metrics
-│   ├── ui/twin3d.py            # UI rendering helper
-│   └── train.py                # Main training pipeline
+├── README.md                         # This file
+├── requirements.txt                  # Python dependencies
+├── dataset/                          # HealthGym ART4HIV dataset
+├── src/                              # Core RL implementation
+│   ├── data/loaders.py              # Trajectory loading and splits
+│   ├── features/                    # State construction and preprocessing
+│   ├── models/baselines.py          # 5 base treatment policies
+│   ├── meta/                        # 3 meta-reasoning policies
+│   ├── eval/ips.py                  # IPS / SNIPS / DR estimators
+│   ├── ui/twin3d.py                 # 3D patient visualisation helpers
+│   └── train.py                     # Main training and evaluation pipeline
 ├── app/
-│   └── clinical_app_real.py    # Final 2D patient view UI
-├── run_comparison.py            # Single entrypoint for full comparison
-├── run_xgb_simple_full.py       # XGBoost simple full run
-├── run_transformer_gb.py       # Transformer-GB full run
-├── run_static_multi_context_full.py  # Static fusion full run
-├── outputs/                     # Cached results (metrics, distributions)
-│   └── results.json
-└── artifacts/                   # Trained model artifacts (.pkl files)
+│   └── clinical_app_real.py         # Streamlit clinical-style UI
+├── run_comparison.py                # Full offline RL comparison entrypoint
+├── run_xgb_simple_full.py           # XGBoost meta-policy driver
+├── run_transformer_gb.py            # Transformer-GB meta-policy driver
+├── run_static_multi_context_full.py # Static multi-context Transformer driver
+├── outputs/
+│   └── results.json                 # Cached offline RL metrics
+└── artifacts/                       # Trained model artifacts (.pkl files)
 ```
 
 ## Notes
 
-- **Default mode (cached):** All run scripts load cached results from `outputs/results.json` instantly
-- **Recompute mode:** Use `--rerun` flag to train models and overwrite cached results
-- All training runs use the full dataset by default (`max_rows: null`)
-- Models are saved automatically after training to `artifacts/`
-- MLflow logs are saved to `mlruns/` (can be viewed with `mlflow ui`)
-- The UI automatically loads the best available model from `artifacts/` (prioritizes `static_multi_context`)
-- The UI does not retrain models - it only loads pre-trained artifacts
-
+- Default execution uses cached offline-RL metrics; training runs are enabled via `--rerun`.
+- All training runs operate on the full dataset (no row subsampling unless modified in code).
+- After training, policies are automatically persisted under `artifacts/`.
+- MLflow logs (if enabled) are stored under `mlruns/` and can be inspected with `mlflow ui`.
+- The Streamlit UI automatically loads the best available fusion policy from `artifacts/`, giving a clinical-style view of the learned **meta-policy over treatment strategies**.
